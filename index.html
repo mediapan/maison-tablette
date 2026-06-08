@@ -6,6 +6,8 @@
 <title>Maison Sylvain</title>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <script>emailjs.init('V4odHXmxPiUAdZLss');</script>
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&family=Lora:wght@400;500&display=swap');
 
@@ -328,6 +330,60 @@
   .deco-1 { top:5%; right:1%; transform:rotate(8deg); }
   .deco-2 { bottom:15%; left:1%; transform:rotate(-5deg); }
   .hidden { display:none !important; }
+  /* OAUTH & AJOUT ÉVÉNEMENT */
+  .oauth-btn {
+    display: flex; align-items: center; gap: 7px;
+    background: rgba(244,163,74,0.15); border: 1px solid rgba(244,163,74,0.3);
+    border-radius: 10px; padding: 7px 14px; cursor: pointer;
+    color: #ffd080; font-size: 13px; font-weight: 600; transition: background 0.15s;
+    font-family: 'Nunito', sans-serif;
+  }
+  .oauth-btn:hover { background: rgba(244,163,74,0.25); }
+  .oauth-btn.connected { background: rgba(92,184,160,0.15); border-color: rgba(92,184,160,0.3); color: #7eefd0; }
+
+  .add-event-btn {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(91,143,212,0.2); border: 1px solid rgba(91,143,212,0.4);
+    border-radius: 10px; padding: 7px 14px; cursor: pointer;
+    color: #8fb9ff; font-size: 13px; font-weight: 600; transition: background 0.15s;
+    font-family: 'Nunito', sans-serif;
+  }
+  .add-event-btn:hover { background: rgba(91,143,212,0.3); }
+
+  .add-event-popup {
+    display: none; position: fixed;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: #12192a; border: 1px solid rgba(91,143,212,0.5);
+    border-radius: 20px; padding: 24px 28px;
+    z-index: 80; width: 380px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+  }
+  .add-event-popup.show { display: block; }
+  .add-event-overlay { display: none; position: fixed; top:0;left:0;right:0;bottom:0; background: rgba(0,0,0,0.6); z-index: 79; }
+  .add-event-overlay.show { display: block; }
+
+  .aep-title { font-family: 'Lora', serif; font-size: 17px; color: #8fb9ff; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; }
+  .aep-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; }
+  .aep-field { margin-bottom: 13px; }
+  .aep-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 5px; display: block; }
+  .aep-input {
+    width: 100%; background: rgba(30,37,53,0.9); border: 1px solid rgba(91,143,212,0.3);
+    border-radius: 8px; padding: 9px 12px; color: var(--text);
+    font-family: 'Nunito', sans-serif; font-size: 14px; outline: none;
+    transition: border-color 0.15s;
+  }
+  .aep-input:focus { border-color: rgba(91,143,212,0.7); }
+  .aep-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .aep-submit {
+    width: 100%; margin-top: 6px; padding: 11px;
+    background: rgba(91,143,212,0.25); border: 1px solid rgba(91,143,212,0.5);
+    border-radius: 10px; color: #8fb9ff; font-family: 'Nunito', sans-serif;
+    font-size: 15px; font-weight: 700; cursor: pointer; transition: background 0.15s;
+  }
+  .aep-submit:hover { background: rgba(91,143,212,0.4); }
+  .aep-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+  .aep-msg { font-size: 12px; text-align: center; margin-top: 8px; min-height: 16px; }
+
 </style>
 </head>
 <body>
@@ -404,10 +460,14 @@
       <div class="agenda-mois-label" id="agenda-mois-label">Juin 2026</div>
       <button class="agenda-nav-btn" onclick="changeMonth(1)">›</button>
     </div>
-    <button class="agenda-sync-btn" onclick="syncGoogleCalendar()" id="sync-btn">
-      <div class="sync-dot" id="sync-dot"></div>
-      <span id="sync-label">Synchroniser</span>
-    </button>
+    <div style="display:flex;gap:8px;">
+      <button class="oauth-btn" onclick="toggleOAuth()" id="oauth-btn">🔐 <span id="oauth-label">Se connecter</span></button>
+      <button class="add-event-btn" onclick="openAddEvent()" id="add-event-btn" style="display:none;">+ Ajouter</button>
+      <button class="agenda-sync-btn" onclick="syncGoogleCalendar()" id="sync-btn">
+        <div class="sync-dot" id="sync-dot"></div>
+        <span id="sync-label">Sync</span>
+      </button>
+    </div>
   </div>
 
   <div class="agenda-calendar-wrap" style="position:relative;">
@@ -562,9 +622,9 @@ const CONFIG = {
   // ─── Google Calendar ────────────────────────────────────────
   // Remplace par tes vraies valeurs après la procédure de création
   gcal: {
-    apiKey:     "AIzaSyAnIn37fmFGONibTSgFpku41wrE6W1kyMg",           // AIzaSy...
-    calendarId: "guilhem.syl@gmail.com"          // xxx@group.calendar.google.com
-                                               // ou ton adresse Gmail pour l'agenda principal
+    apiKey:     "AIzaSyAnIn37fmFGONibTSgFpku41wrE6W1kyMg",
+    calendarId: "guilhem.syl@gmail.com",
+    clientId:   "294722333251-paj5q4cssa59m8d8b8888cng3sr00e7o.apps.googleusercontent.com"
   },
   // ────────────────────────────────────────────────────────────
   messages: [
@@ -1011,6 +1071,158 @@ function initConfig() {
   if(d.gcal.apiKey==='VOTRE_CLE_API_ICI') setSyncStatus('⚙️ Clé API à configurer dans le bloc CONFIG');
 }
 
+
+// ═══════════════════════════════════════
+// OAUTH 2.0 GOOGLE — Ajout d'événements
+// ═══════════════════════════════════════
+let tokenClient = null;
+let accessToken  = null;
+let isConnected  = false;
+
+function initOAuth() {
+  if (typeof google === 'undefined') {
+    setTimeout(initOAuth, 500);
+    return;
+  }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CONFIG.gcal.clientId,
+    scope: 'https://www.googleapis.com/auth/calendar.events',
+    callback: (resp) => {
+      if (resp.error) {
+        setOAuthStatus(false, 'Erreur : ' + resp.error);
+        return;
+      }
+      accessToken = resp.access_token;
+      isConnected = true;
+      setOAuthStatus(true);
+    }
+  });
+  // Restore token from session
+  const saved = sessionStorage.getItem('gcal_token');
+  if (saved) { accessToken = saved; isConnected = true; setOAuthStatus(true); }
+}
+
+function toggleOAuth() {
+  if (isConnected) {
+    // Déconnexion
+    accessToken = null; isConnected = false;
+    sessionStorage.removeItem('gcal_token');
+    setOAuthStatus(false);
+  } else {
+    tokenClient.requestAccessToken({ prompt: 'consent' });
+  }
+}
+
+function setOAuthStatus(connected, error) {
+  const btn   = document.getElementById('oauth-btn');
+  const label = document.getElementById('oauth-label');
+  const addBtn = document.getElementById('add-event-btn');
+  if (connected) {
+    btn.className = 'oauth-btn connected';
+    label.textContent = 'Connecté ✓';
+    addBtn.style.display = 'flex';
+    sessionStorage.setItem('gcal_token', accessToken);
+  } else {
+    btn.className = 'oauth-btn';
+    label.textContent = error || 'Se connecter';
+    addBtn.style.display = 'none';
+  }
+}
+
+// ═══════════════════════════════════════
+// POPUP AJOUT ÉVÉNEMENT
+// ═══════════════════════════════════════
+function openAddEvent() {
+  if (!isConnected) { toggleOAuth(); return; }
+  // Pré-remplir avec la date du jour sélectionné ou aujourd'hui
+  const today = new Date().toISOString().substring(0, 10);
+  document.getElementById('aep-date').value = today;
+  document.getElementById('aep-titre').value = '';
+  document.getElementById('aep-heure-debut').value = '';
+  document.getElementById('aep-heure-fin').value = '';
+  document.getElementById('aep-qui').value = '';
+  document.getElementById('aep-desc').value = '';
+  document.getElementById('aep-msg').textContent = '';
+  document.getElementById('aep-submit').disabled = false;
+  document.getElementById('add-event-popup').classList.add('show');
+  document.getElementById('add-event-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('aep-titre').focus(), 100);
+}
+
+function closeAddEvent() {
+  document.getElementById('add-event-popup').classList.remove('show');
+  document.getElementById('add-event-overlay').classList.remove('show');
+}
+
+async function submitEvent() {
+  const titre = document.getElementById('aep-titre').value.trim();
+  const date  = document.getElementById('aep-date').value;
+  const hDeb  = document.getElementById('aep-heure-debut').value;
+  const hFin  = document.getElementById('aep-heure-fin').value;
+  const qui   = document.getElementById('aep-qui').value.trim();
+  const desc  = document.getElementById('aep-desc').value.trim();
+  const msg   = document.getElementById('aep-msg');
+  const btn   = document.getElementById('aep-submit');
+
+  if (!titre || !date) { msg.style.color='#e07070'; msg.textContent='Titre et date obligatoires.'; return; }
+
+  btn.disabled = true;
+  msg.style.color = '#f4a34a';
+  msg.textContent = 'Envoi en cours…';
+
+  let event;
+  if (hDeb) {
+    // Événement avec horaire
+    const fin = hFin || (hDeb.substring(0,2)*60 + parseInt(hDeb.substring(3)) + 60);
+    const finH = hFin || String(Math.floor((hDeb.substring(0,2)*60 + parseInt(hDeb.substring(3)) + 60)/60)).padStart(2,'0') + ':' + String((hDeb.substring(0,2)*60 + parseInt(hDeb.substring(3)) + 60)%60).padStart(2,'0');
+    event = {
+      summary: titre + (qui ? ' · ' + qui : ''),
+      description: desc || undefined,
+      start: { dateTime: date + 'T' + hDeb + ':00', timeZone: 'Europe/Paris' },
+      end:   { dateTime: date + 'T' + (hFin || finH) + ':00', timeZone: 'Europe/Paris' }
+    };
+  } else {
+    // Événement toute la journée
+    event = {
+      summary: titre + (qui ? ' · ' + qui : ''),
+      description: desc || undefined,
+      start: { date: date },
+      end:   { date: date }
+    };
+  }
+
+  try {
+    const r = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CONFIG.gcal.calendarId)}/events`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + accessToken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(event)
+      }
+    );
+    if (!r.ok) {
+      const err = await r.json();
+      throw new Error(err.error?.message || 'Erreur API');
+    }
+    msg.style.color = '#5cb8a0';
+    msg.textContent = '✓ Événement ajouté !';
+    setTimeout(() => {
+      closeAddEvent();
+      syncGoogleCalendar();
+    }, 1200);
+  } catch(e) {
+    msg.style.color = '#e07070';
+    msg.textContent = '✗ Erreur : ' + e.message;
+    btn.disabled = false;
+  }
+}
+
+// Init OAuth au chargement
+window.addEventListener('load', initOAuth);
+
 // ═══════════════════════════
 // DÉMARRAGE
 // ═══════════════════════════
@@ -1024,5 +1236,48 @@ setInterval(loadMeteo, 600000);
 // Auto-sync toutes les 15 min si clé configurée
 setInterval(()=>{if(CONFIG.gcal.apiKey!=='VOTRE_CLE_API_ICI')syncGoogleCalendar();}, 15*60*1000);
 </script>
+
+<!-- OVERLAY ADD EVENT -->
+<div class="add-event-overlay" id="add-event-overlay" onclick="closeAddEvent()"></div>
+
+<!-- POPUP AJOUT ÉVÉNEMENT -->
+<div class="add-event-popup" id="add-event-popup">
+  <div class="aep-title">
+    📅 Nouvel événement
+    <button class="aep-close" onclick="closeAddEvent()">✕</button>
+  </div>
+  <div class="aep-field">
+    <label class="aep-label">Titre *</label>
+    <input class="aep-input" id="aep-titre" type="text" placeholder="Ex: Rendez-vous médecin">
+  </div>
+  <div class="aep-row">
+    <div class="aep-field">
+      <label class="aep-label">Date *</label>
+      <input class="aep-input" id="aep-date" type="date">
+    </div>
+    <div class="aep-field">
+      <label class="aep-label">Heure début</label>
+      <input class="aep-input" id="aep-heure-debut" type="time">
+    </div>
+  </div>
+  <div class="aep-row">
+    <div class="aep-field">
+      <label class="aep-label">Heure fin</label>
+      <input class="aep-input" id="aep-heure-fin" type="time">
+    </div>
+    <div class="aep-field">
+      <label class="aep-label">Pour qui</label>
+      <input class="aep-input" id="aep-qui" type="text" placeholder="Ex: Famille">
+    </div>
+  </div>
+  <div class="aep-field">
+    <label class="aep-label">Description</label>
+    <input class="aep-input" id="aep-desc" type="text" placeholder="Optionnel">
+  </div>
+  <button class="aep-submit" id="aep-submit" onclick="submitEvent()">✓ Ajouter au calendrier</button>
+  <div class="aep-msg" id="aep-msg"></div>
+</div>
+
 </body>
 </html>
+<!-- OAuth patch will be injected below -->
