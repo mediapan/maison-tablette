@@ -479,8 +479,7 @@
       <button class="agenda-nav-btn" onclick="changeMonth(1)">›</button>
     </div>
     <div style="display:flex;gap:8px;">
-      <button class="oauth-btn" onclick="toggleOAuth()" id="oauth-btn">🔐 <span id="oauth-label">Se connecter</span></button>
-      <button class="add-event-btn" onclick="openAddEvent()" id="add-event-btn" style="display:none;">+ Ajouter</button>
+      <button class="add-event-btn" onclick="openAddEventOnDate(new Date().toISOString().substring(0,10))" style="display:flex;">+ Ajouter</button>
       <button class="agenda-sync-btn" onclick="syncGoogleCalendar()" id="sync-btn">
         <div class="sync-dot" id="sync-dot"></div>
         <span id="sync-label">Sync</span>
@@ -1167,18 +1166,14 @@ function setOAuthStatus(connected, error) {
 // POPUP AJOUT ÉVÉNEMENT
 // ═══════════════════════════════════════
 function openAddEventOnDate(dateStr) {
-  if (!isConnected) { toggleOAuth(); return; }
-  document.getElementById('aep-date').value = dateStr;
-  document.getElementById('aep-titre').value = '';
-  document.getElementById('aep-heure-debut').value = '';
-  document.getElementById('aep-heure-fin').value = '';
-  document.getElementById('aep-qui').value = '';
-  document.getElementById('aep-desc').value = '';
-  document.getElementById('aep-msg').textContent = '';
-  document.getElementById('aep-submit').disabled = false;
-  document.getElementById('add-event-popup').classList.add('show');
-  document.getElementById('add-event-overlay').classList.add('show');
-  setTimeout(() => document.getElementById('aep-titre').focus(), 100);
+  // Ouvre Google Calendar directement sur la bonne date
+  const d = new Date(dateStr);
+  const year  = d.getFullYear();
+  const month = String(d.getMonth()+1).padStart(2,'0');
+  const day   = String(d.getDate()).padStart(2,'0');
+  const gcalDate = year + month + day;
+  const url = `https://calendar.google.com/calendar/r/eventedit?dates=${gcalDate}/${gcalDate}&src=${encodeURIComponent(CONFIG.gcal.calendarId)}`;
+  window.open(url, '_blank');
 }
 
 function openAddEvent() {
@@ -1282,8 +1277,18 @@ renderTodayCard();
 renderCoursesCard();
 loadMeteo();
 setInterval(loadMeteo, 600000);
-// Auto-sync toutes les 15 min si clé configurée
-setInterval(()=>{if(CONFIG.gcal.apiKey!=='VOTRE_CLE_API_ICI')syncGoogleCalendar();}, 15*60*1000);
+// Auto-sync toutes les 5 min
+setInterval(()=>{ syncGoogleCalendar(); }, 5*60*1000);
+
+// Sync automatique quand on revient sur l'onglet (après ajout dans Google Calendar)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    syncGoogleCalendar();
+  }
+});
+
+// Sync quand la page agenda est ouverte
+const _origOpenAgendaPage = openAgendaPage;
 </script>
 
 <!-- OVERLAY ADD EVENT -->
