@@ -330,6 +330,24 @@
   .deco-1 { top:5%; right:1%; transform:rotate(8deg); }
   .deco-2 { bottom:15%; left:1%; transform:rotate(-5deg); }
   .hidden { display:none !important; }
+  .cal-add-btn {
+    position: absolute; top: 4px; right: 5px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: rgba(91,143,212,0.0); border: 1px solid rgba(91,143,212,0.0);
+    color: rgba(91,143,212,0.0);
+    font-size: 13px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .cal-cell:hover .cal-add-btn {
+    background: rgba(91,143,212,0.2);
+    border-color: rgba(91,143,212,0.5);
+    color: #8fb9ff;
+  }
+  .cal-cell { position: relative; }
+  .cal-day-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+
   /* OAUTH & AJOUT ÉVÉNEMENT */
   .oauth-btn {
     display: flex; align-items: center; gap: 7px;
@@ -805,10 +823,26 @@ function renderCalendar() {
     cell.dataset.date = dateStr;
     cell.onclick = () => openDetailPanel(dateStr, day, month, year);
 
+    // En-tête du jour : numéro + bouton +
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'cal-day-header';
+
     const numDiv = document.createElement('div');
     numDiv.className = 'cal-day-num';
     numDiv.textContent = day;
-    cell.appendChild(numDiv);
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'cal-add-btn';
+    addBtn.textContent = '+';
+    addBtn.title = 'Ajouter un événement';
+    addBtn.onclick = (e) => {
+      e.stopPropagation();
+      openAddEventOnDate(dateStr);
+    };
+
+    headerDiv.appendChild(numDiv);
+    headerDiv.appendChild(addBtn);
+    cell.appendChild(headerDiv);
 
     if (dayEvents.length > 0) {
       const evDiv = document.createElement('div');
@@ -1132,6 +1166,21 @@ function setOAuthStatus(connected, error) {
 // ═══════════════════════════════════════
 // POPUP AJOUT ÉVÉNEMENT
 // ═══════════════════════════════════════
+function openAddEventOnDate(dateStr) {
+  if (!isConnected) { toggleOAuth(); return; }
+  document.getElementById('aep-date').value = dateStr;
+  document.getElementById('aep-titre').value = '';
+  document.getElementById('aep-heure-debut').value = '';
+  document.getElementById('aep-heure-fin').value = '';
+  document.getElementById('aep-qui').value = '';
+  document.getElementById('aep-desc').value = '';
+  document.getElementById('aep-msg').textContent = '';
+  document.getElementById('aep-submit').disabled = false;
+  document.getElementById('add-event-popup').classList.add('show');
+  document.getElementById('add-event-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('aep-titre').focus(), 100);
+}
+
 function openAddEvent() {
   if (!isConnected) { toggleOAuth(); return; }
   // Pré-remplir avec la date du jour sélectionné ou aujourd'hui
