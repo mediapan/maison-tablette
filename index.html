@@ -1233,10 +1233,29 @@ function renderCoursesCard() {
 function renderCoursesPopup() {
   const list=document.getElementById('courses-popup-list');list.innerHTML='';
   courses.forEach((c,i)=>{
-    const div=document.createElement('div');div.className='courses-item'+(c.fait?' done':'');
-    div.style.cssText='display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(92,184,160,0.1);font-size:14px;cursor:pointer;';
-    div.innerHTML=`<div class="courses-checkbox">${c.fait?'':''}</div><span style="flex:1">${c.label}</span>`;
-    div.onclick=()=>{courses[i].fait=!courses[i].fait;sauvegarderCourses();renderCoursesCard();renderCoursesPopup();};
+    const div=document.createElement('div');
+    div.style.cssText='display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(92,184,160,0.1);font-size:14px;';
+    
+    const cb=document.createElement('div');
+    cb.className='courses-checkbox'+(c.fait?' courses-item done':'');
+    if(c.fait) cb.style.cssText='background:#5cb8a0;border-color:#5cb8a0;width:16px;height:16px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
+    else cb.style.cssText='width:16px;height:16px;border-radius:4px;border:1.5px solid rgba(92,184,160,0.5);flex-shrink:0;cursor:pointer;';
+    if(c.fait) cb.innerHTML='<span style="font-size:10px;color:#0f1117;font-weight:700;">✓</span>';
+    cb.onclick=()=>{courses[i].fait=!courses[i].fait;sauvegarderCourses();renderCoursesCard();renderCoursesPopup();};
+
+    const label=document.createElement('span');
+    label.style.cssText='flex:1;cursor:pointer;'+(c.fait?'text-decoration:line-through;color:var(--muted);':'');
+    label.textContent=c.label;
+    label.onclick=()=>{courses[i].fait=!courses[i].fait;sauvegarderCourses();renderCoursesCard();renderCoursesPopup();};
+
+    const delBtn=document.createElement('button');
+    delBtn.innerHTML='🗑';
+    delBtn.style.cssText='background:rgba(224,112,112,0.15);border:1px solid rgba(224,112,112,0.3);border-radius:6px;padding:2px 8px;color:#ff9999;cursor:pointer;font-size:12px;flex-shrink:0;';
+    delBtn.onclick=(e)=>{e.stopPropagation();courses.splice(i,1);sauvegarderCourses();renderCoursesCard();renderCoursesPopup();};
+
+    div.appendChild(cb);
+    div.appendChild(label);
+    div.appendChild(delBtn);
     list.appendChild(div);
   });
 }
